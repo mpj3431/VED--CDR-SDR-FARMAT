@@ -6,7 +6,7 @@
     <title>વેદ (VED) - PWA Studio</title>
     
     <!-- PWA & Mobile Home Screen Meta Tags -->
-    <meta name="theme-color" content="#1e40af">
+    <meta name="theme-color" content="#ea580c">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="વેદ VED">
@@ -40,14 +40,11 @@
     
     <!-- Theme engine -->
     <script>
-        // ફક્ત વાદળી, નારંગી અને ટીલ કલર રાખેલા છે
-        const THEMES = [
-            { id: 'blue',   name: 'વાદળી',    h: 215, s: 70 },
-            { id: 'orange', name: 'નારંગી',   h: 24,  s: 85 },
-            { id: 'teal',   name: 'ટીલ',      h: 182, s: 65 }
-        ];
-        // CDR માં નારંગી અને SDR માં ટીલ ડિફોલ્ટ સેટ કરેલ છે
-        const DEFAULT_THEME = { CDR: 'orange', SDR: 'teal' };
+        // CDR માટે વાદળી (h:215) અને SDR માટે પર્પલ (h:270)
+        const THEME_CONFIG = {
+            CDR: { h: 215, s: 70 },
+            SDR: { h: 270, s: 50 }
+        };
         const LADDER = { 50: 96, 100: 92, 200: 85, 300: 74, 400: 58, 500: 42, 600: 32, 700: 25, 800: 19, 900: 12 };
         
         function hsl2rgb(h, s, l) {
@@ -57,23 +54,14 @@
             const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
             return [f(0), f(8), f(4)].map(x => Math.round(x * 255));
         }
-        function getThemeId(cat) {
-            let id = null;
-            try { id = localStorage.getItem('ved-theme-' + cat); } catch (e) {}
-            return THEMES.some(t => t.id === id) ? id : DEFAULT_THEME[cat];
-        }
-        function applyTheme(t) {
+        function applyTheme(cat) {
+            const t = THEME_CONFIG[cat] || THEME_CONFIG['CDR'];
             const root = document.documentElement;
             for (const k in LADDER) {
                 const sat = Number(k) <= 300 ? t.s * 0.55 : t.s;
                 root.style.setProperty('--k-' + k, hsl2rgb(t.h, sat, LADDER[k]).join(' '));
             }
         }
-        (function () {
-            let cat = 'CDR';
-            try { const c = localStorage.getItem('ved-cat'); if (c === 'CDR' || c === 'SDR') cat = c; } catch (e) {}
-            applyTheme(THEMES.find(t => t.id === getThemeId(cat)));
-        })();
     </script>
 
     <!-- External Libraries -->
@@ -99,16 +87,16 @@
         <span id="toastMsg" class="text-sm font-medium">સંદેશ</span>
     </div>
 
-    <!-- Header Section (હેડીંગમાં વાદળી કલર) -->
-    <header class="bg-blue-800 text-white shadow-md py-4 px-4 border-b border-blue-900">
+    <!-- Header Section (નારંગી કલર) -->
+    <header class="bg-orange-600 text-white shadow-md py-4 px-4 border-b border-orange-700">
         <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
             <div class="flex items-center space-x-3 space-x-reverse">
-                <div class="bg-blue-700 p-2.5 rounded-2xl border border-blue-600 shadow-inner">
-                    <i class="fa-solid fa-layer-group text-2xl text-blue-100"></i>
+                <div class="bg-orange-700 p-2.5 rounded-2xl border border-orange-500 shadow-inner">
+                    <i class="fa-solid fa-layer-group text-2xl text-orange-100"></i>
                 </div>
                 <div>
                     <h1 class="text-xl sm:text-2xl font-bold tracking-wide">વેદ - એક્સેલ/CSV મલ્ટી-ફાઇલ સ્ટુડિયો</h1>
-                    <p class="text-blue-200 text-xs">મલ્ટીપલ ફાઇલ્સ, મલ્ટી-શીટ, સર્ચ અને ડાઉનલોડ ટૂલ</p>
+                    <p class="text-orange-100 text-xs">મલ્ટીપલ ફાઇલ્સ, મલ્ટી-શીટ, સર્ચ અને ડાઉનલોડ ટૂલ</p>
                 </div>
             </div>
         </div>
@@ -120,27 +108,19 @@
         <!-- Dashboard Switcher -->
         <nav class="grid grid-cols-2 gap-3">
             <button id="tabCDR" onclick="setCategory('CDR')" class="rounded-2xl border-2 px-4 py-3 text-center font-bold transition-all">
-                <span id="dotCDR" class="inline-block w-3 h-3 rounded-full mr-1 border border-white align-middle"></span><i class="fa-solid fa-phone-volume mr-1"></i> CDR
+                <span id="dotCDR" class="inline-block w-3 h-3 rounded-full mr-1 bg-blue-600 border border-white align-middle"></span><i class="fa-solid fa-phone-volume mr-1"></i> CDR
                 <span id="cntCDR" class="ml-2 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-white/30">0</span>
             </button>
             <button id="tabSDR" onclick="setCategory('SDR')" class="rounded-2xl border-2 px-4 py-3 text-center font-bold transition-all">
-                <span id="dotSDR" class="inline-block w-3 h-3 rounded-full mr-1 border border-white align-middle"></span><i class="fa-solid fa-id-card mr-1"></i> SDR
+                <span id="dotSDR" class="inline-block w-3 h-3 rounded-full mr-1 bg-purple-600 border border-white align-middle"></span><i class="fa-solid fa-id-card mr-1"></i> SDR
                 <span id="cntSDR" class="ml-2 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-white/30">0</span>
             </button>
         </nav>
 
-        <!-- Active Dashboard Heading -->
-        <div id="dashBanner" class="rounded-2xl px-5 py-3 text-white shadow flex items-center justify-between">
-            <h2 class="text-lg font-bold"><span class="catName"></span> ડેશબોર્ડ</h2>
-            <span class="text-xs opacity-90">આ વિભાગનો ડેટા અલગ સેવ થાય છે</span>
+        <!-- Active Dashboard Heading (વચ્ચે સેન્ટરમાં) -->
+        <div id="dashBanner" class="rounded-2xl px-5 py-3 text-white shadow flex items-center justify-center text-center">
+            <h2 class="text-xl font-extrabold tracking-wide"><span class="catName"></span> ડેશબોર્ડ</h2>
         </div>
-
-        <!-- Theme Picker (per dashboard) -->
-        <section class="bg-white rounded-2xl shadow-sm border border-khaki-200 px-4 py-3 flex flex-wrap items-center gap-3">
-            <span class="text-xs font-bold text-khaki-900"><i class="fa-solid fa-palette mr-1"></i><span class="catName"></span> ની થીમ:</span>
-            <div id="themePicker" class="flex flex-wrap gap-2.5"></div>
-            <span id="themeName" class="text-xs font-semibold text-khaki-600"></span>
-        </section>
 
         <!-- Step 1: File Upload Section -->
         <section class="bg-white rounded-2xl shadow-sm border border-khaki-200 p-6 flex flex-col justify-between">
@@ -259,6 +239,7 @@
         let filesMemoryStore = [];
         let currentCat = 'CDR';
         try { const c = localStorage.getItem('ved-cat'); if (c === 'CDR' || c === 'SDR') currentCat = c; } catch (e) {}
+
         const CAT_STYLE = {
             CDR: { on: 'bg-khaki-700 text-white border-khaki-700 shadow', banner: 'bg-khaki-700' },
             SDR: { on: 'bg-khaki-700 text-white border-khaki-700 shadow', banner: 'bg-khaki-700' }
@@ -516,48 +497,21 @@
             fileSearchInput.value = '';
             searchInput.value = '';
             document.querySelectorAll('.catName').forEach(el => el.textContent = cat);
-            applyTheme(THEMES.find(t => t.id === getThemeId(cat)));
-            renderThemePicker();
+            
+            applyTheme(cat);
+
             ['CDR', 'SDR'].forEach(c => {
                 document.getElementById('tab' + c).className =
                     'rounded-2xl border-2 px-4 py-3 text-center font-bold transition-all ' + (c === cat ? CAT_STYLE[c].on : CAT_OFF);
             });
             document.getElementById('dashBanner').className =
-                'rounded-2xl px-5 py-3 text-white shadow flex items-center justify-between ' + CAT_STYLE[cat].banner;
+                'rounded-2xl px-5 py-3 text-white shadow flex items-center justify-center text-center ' + CAT_STYLE[cat].banner;
             refreshFilesUI();
             let last = null;
             try { last = localStorage.getItem('ved-last-' + cat); } catch (e) {}
             if (last && filesMemoryStore.some(x => x.id === last)) selectStoredFile(last);
         }
         window.setCategory = setCategory;
-
-        function swatchColor(t) { return 'rgb(' + hsl2rgb(t.h, t.s, 32).join(',') + ')'; }
-        function renderThemePicker() {
-            const cur = getThemeId(currentCat);
-            const box = document.getElementById('themePicker');
-            box.innerHTML = '';
-            THEMES.forEach(t => {
-                const b = document.createElement('button');
-                b.type = 'button';
-                b.title = t.name;
-                b.setAttribute('aria-label', t.name);
-                b.style.background = swatchColor(t);
-                b.className = 'w-8 h-8 rounded-full border-2 transition-all ' +
-                    (t.id === cur ? 'border-khaki-900 ring-2 ring-offset-2 ring-khaki-500 scale-110 shadow' : 'border-white shadow-sm hover:scale-110');
-                b.onclick = () => setTheme(currentCat, t.id);
-                box.appendChild(b);
-            });
-            document.getElementById('themeName').textContent = THEMES.find(t => t.id === cur).name;
-            ['CDR', 'SDR'].forEach(c => {
-                const d = document.getElementById('dot' + c);
-                if (d) d.style.background = swatchColor(THEMES.find(t => t.id === getThemeId(c)));
-            });
-        }
-        function setTheme(cat, id) {
-            try { localStorage.setItem('ved-theme-' + cat, id); } catch (e) {}
-            applyTheme(THEMES.find(t => t.id === id));
-            renderThemePicker();
-        }
 
         function escapeHtml(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
         window.copyTxt = (t) => { navigator.clipboard.writeText(t).then(() => showToast("ટેક્સ્ટ કોપી થઈ ગયું!")); };
@@ -640,7 +594,7 @@
     <!-- Load saved files on startup -->
     <script>
         (async () => {
-            try { if (navigator.storage && navigator.storage.persist) await navigator.storage.persist(); } catch (e) {}
+            try { if (navigator.storage && navigator.storagepersist) await navigator.storage.persist(); } catch (e) {}
             const saved = await dbGetAll();
             for (const rec of saved) {
                 if (!filesMemoryStore.some(x => x.id === rec.id)) filesMemoryStore.push(rec);
