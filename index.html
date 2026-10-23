@@ -6,7 +6,7 @@
     <title>વેદ (VED) - PWA Studio</title>
     
     <!-- PWA & Mobile Home Screen Meta Tags -->
-    <meta name="theme-color" content="#4B5320">
+    <meta name="theme-color" content="#1e40af">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="વેદ VED">
@@ -40,20 +40,16 @@
     
     <!-- Theme engine -->
     <script>
+        // ફક્ત વાદળી, નારંગી અને ટીલ કલર રાખેલા છે
         const THEMES = [
-            { id: 'olive',  name: 'ઓલિવ',    h: 68,  s: 45 },
             { id: 'blue',   name: 'વાદળી',    h: 215, s: 70 },
-            { id: 'green',  name: 'લીલો',     h: 150, s: 55 },
-            { id: 'purple', name: 'જાંબલી',   h: 270, s: 50 },
-            { id: 'red',    name: 'લાલ',      h: 355, s: 65 },
             { id: 'orange', name: 'નારંગી',   h: 24,  s: 85 },
-            { id: 'pink',   name: 'ગુલાબી',   h: 330, s: 60 },
-            { id: 'teal',   name: 'ટીલ',      h: 182, s: 65 },
-            { id: 'brown',  name: 'બ્રાઉન',   h: 25,  s: 40 },
-            { id: 'slate',  name: 'સ્લેટ',    h: 220, s: 18 }
+            { id: 'teal',   name: 'ટીલ',      h: 182, s: 65 }
         ];
-        const DEFAULT_THEME = { CDR: 'olive', SDR: 'blue' };
+        // CDR માં નારંગી અને SDR માં ટીલ ડિફોલ્ટ સેટ કરેલ છે
+        const DEFAULT_THEME = { CDR: 'orange', SDR: 'teal' };
         const LADDER = { 50: 96, 100: 92, 200: 85, 300: 74, 400: 58, 500: 42, 600: 32, 700: 25, 800: 19, 900: 12 };
+        
         function hsl2rgb(h, s, l) {
             s /= 100; l /= 100;
             const k = n => (n + h / 30) % 12;
@@ -72,8 +68,6 @@
                 const sat = Number(k) <= 300 ? t.s * 0.55 : t.s;
                 root.style.setProperty('--k-' + k, hsl2rgb(t.h, sat, LADDER[k]).join(' '));
             }
-            const m = document.querySelector('meta[name="theme-color"]');
-            if (m) m.setAttribute('content', 'rgb(' + hsl2rgb(t.h, t.s, LADDER[800]).join(',') + ')');
         }
         (function () {
             let cat = 'CDR';
@@ -105,16 +99,16 @@
         <span id="toastMsg" class="text-sm font-medium">સંદેશ</span>
     </div>
 
-    <!-- Header Section -->
-    <header class="bg-khaki-800 text-khaki-50 shadow-md py-4 px-4 border-b border-khaki-900">
+    <!-- Header Section (હેડીંગમાં વાદળી કલર) -->
+    <header class="bg-blue-800 text-white shadow-md py-4 px-4 border-b border-blue-900">
         <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
             <div class="flex items-center space-x-3 space-x-reverse">
-                <div class="bg-khaki-700 p-2.5 rounded-2xl border border-khaki-600 shadow-inner">
-                    <i class="fa-solid fa-layer-group text-2xl text-khaki-100"></i>
+                <div class="bg-blue-700 p-2.5 rounded-2xl border border-blue-600 shadow-inner">
+                    <i class="fa-solid fa-layer-group text-2xl text-blue-100"></i>
                 </div>
                 <div>
                     <h1 class="text-xl sm:text-2xl font-bold tracking-wide">વેદ - એક્સેલ/CSV મલ્ટી-ફાઇલ સ્ટુડિયો</h1>
-                    <p class="text-khaki-200 text-xs">મલ્ટીપલ ફાઇલ્સ, મલ્ટી-શીટ, સર્ચ અને ડાઉનલોડ ટૂલ</p>
+                    <p class="text-blue-200 text-xs">મલ્ટીપલ ફાઇલ્સ, મલ્ટી-શીટ, સર્ચ અને ડાઉનલોડ ટૂલ</p>
                 </div>
             </div>
         </div>
@@ -235,7 +229,7 @@
 
         </div>
 
-        <!-- Saved Files Drawer / Section (Bottom with Search) -->
+        <!-- Saved Files Drawer / Section -->
         <section class="bg-white rounded-2xl shadow-sm border border-khaki-200 p-5 space-y-3">
             <div class="flex flex-col md:flex-row justify-between items-center gap-3 pb-2 border-b border-khaki-200">
                 <h3 class="text-sm font-bold text-khaki-900 flex items-center gap-2">
@@ -655,7 +649,7 @@
             setCategory(currentCat);
         })();
     </script>
-    <!-- WhatsApp / Telegram Share Target (added) -->
+    <!-- WhatsApp / Telegram Share Target -->
     <script>
         (async () => {
             if ('serviceWorker' in navigator) {
