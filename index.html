@@ -21,9 +21,16 @@
                 extend: {
                     colors: {
                         khaki: {
-                            50: '#FAF8F3', 100: '#F4F1E6', 200: '#E6E0CE', 300: '#D2C8AC', 
-                            400: '#A39672', 500: '#6E6646', 600: '#554E33', 
-                            700: '#4B5320', 800: '#3C4222', 900: '#2A2E17'
+                            50: 'rgb(var(--k-50) / <alpha-value>)',
+                            100: 'rgb(var(--k-100) / <alpha-value>)',
+                            200: 'rgb(var(--k-200) / <alpha-value>)',
+                            300: 'rgb(var(--k-300) / <alpha-value>)',
+                            400: 'rgb(var(--k-400) / <alpha-value>)',
+                            500: 'rgb(var(--k-500) / <alpha-value>)',
+                            600: 'rgb(var(--k-600) / <alpha-value>)',
+                            700: 'rgb(var(--k-700) / <alpha-value>)',
+                            800: 'rgb(var(--k-800) / <alpha-value>)',
+                            900: 'rgb(var(--k-900) / <alpha-value>)'
                         }
                     }
                 }
@@ -31,6 +38,50 @@
         }
     </script>
     
+    <!-- Theme engine -->
+    <script>
+        const THEMES = [
+            { id: 'olive',  name: 'ઓલિવ',    h: 68,  s: 45 },
+            { id: 'blue',   name: 'વાદળી',    h: 215, s: 70 },
+            { id: 'green',  name: 'લીલો',     h: 150, s: 55 },
+            { id: 'purple', name: 'જાંબલી',   h: 270, s: 50 },
+            { id: 'red',    name: 'લાલ',      h: 355, s: 65 },
+            { id: 'orange', name: 'નારંગી',   h: 24,  s: 85 },
+            { id: 'pink',   name: 'ગુલાબી',   h: 330, s: 60 },
+            { id: 'teal',   name: 'ટીલ',      h: 182, s: 65 },
+            { id: 'brown',  name: 'બ્રાઉન',   h: 25,  s: 40 },
+            { id: 'slate',  name: 'સ્લેટ',    h: 220, s: 18 }
+        ];
+        const DEFAULT_THEME = { CDR: 'olive', SDR: 'blue' };
+        const LADDER = { 50: 96, 100: 92, 200: 85, 300: 74, 400: 58, 500: 42, 600: 32, 700: 25, 800: 19, 900: 12 };
+        function hsl2rgb(h, s, l) {
+            s /= 100; l /= 100;
+            const k = n => (n + h / 30) % 12;
+            const a = s * Math.min(l, 1 - l);
+            const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+            return [f(0), f(8), f(4)].map(x => Math.round(x * 255));
+        }
+        function getThemeId(cat) {
+            let id = null;
+            try { id = localStorage.getItem('ved-theme-' + cat); } catch (e) {}
+            return THEMES.some(t => t.id === id) ? id : DEFAULT_THEME[cat];
+        }
+        function applyTheme(t) {
+            const root = document.documentElement;
+            for (const k in LADDER) {
+                const sat = Number(k) <= 300 ? t.s * 0.55 : t.s;
+                root.style.setProperty('--k-' + k, hsl2rgb(t.h, sat, LADDER[k]).join(' '));
+            }
+            const m = document.querySelector('meta[name="theme-color"]');
+            if (m) m.setAttribute('content', 'rgb(' + hsl2rgb(t.h, t.s, LADDER[800]).join(',') + ')');
+        }
+        (function () {
+            let cat = 'CDR';
+            try { const c = localStorage.getItem('ved-cat'); if (c === 'CDR' || c === 'SDR') cat = c; } catch (e) {}
+            applyTheme(THEMES.find(t => t.id === getThemeId(cat)));
+        })();
+    </script>
+
     <!-- External Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -40,10 +91,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Mukta+Vaani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
-        body { font-family: 'Mukta Vaani', sans-serif; background-color: #F8F6F0; color: #2A2E17; }
+        body { font-family: 'Mukta Vaani', sans-serif; background-color: rgb(var(--k-50)); color: rgb(var(--k-900)); transition: background-color .3s; }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #F4F1E6; }
-        ::-webkit-scrollbar-thumb { background: #A39672; border-radius: 4px; }
+        ::-webkit-scrollbar-track { background: rgb(var(--k-100)); }
+        ::-webkit-scrollbar-thumb { background: rgb(var(--k-400)); border-radius: 4px; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -72,12 +123,37 @@
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 py-6 flex-grow w-full space-y-6">
 
+        <!-- Dashboard Switcher -->
+        <nav class="grid grid-cols-2 gap-3">
+            <button id="tabCDR" onclick="setCategory('CDR')" class="rounded-2xl border-2 px-4 py-3 text-center font-bold transition-all">
+                <span id="dotCDR" class="inline-block w-3 h-3 rounded-full mr-1 border border-white align-middle"></span><i class="fa-solid fa-phone-volume mr-1"></i> CDR
+                <span id="cntCDR" class="ml-2 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-white/30">0</span>
+            </button>
+            <button id="tabSDR" onclick="setCategory('SDR')" class="rounded-2xl border-2 px-4 py-3 text-center font-bold transition-all">
+                <span id="dotSDR" class="inline-block w-3 h-3 rounded-full mr-1 border border-white align-middle"></span><i class="fa-solid fa-id-card mr-1"></i> SDR
+                <span id="cntSDR" class="ml-2 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-white/30">0</span>
+            </button>
+        </nav>
+
+        <!-- Active Dashboard Heading -->
+        <div id="dashBanner" class="rounded-2xl px-5 py-3 text-white shadow flex items-center justify-between">
+            <h2 class="text-lg font-bold"><span class="catName"></span> ડેશબોર્ડ</h2>
+            <span class="text-xs opacity-90">આ વિભાગનો ડેટા અલગ સેવ થાય છે</span>
+        </div>
+
+        <!-- Theme Picker (per dashboard) -->
+        <section class="bg-white rounded-2xl shadow-sm border border-khaki-200 px-4 py-3 flex flex-wrap items-center gap-3">
+            <span class="text-xs font-bold text-khaki-900"><i class="fa-solid fa-palette mr-1"></i><span class="catName"></span> ની થીમ:</span>
+            <div id="themePicker" class="flex flex-wrap gap-2.5"></div>
+            <span id="themeName" class="text-xs font-semibold text-khaki-600"></span>
+        </section>
+
         <!-- Step 1: File Upload Section -->
         <section class="bg-white rounded-2xl shadow-sm border border-khaki-200 p-6 flex flex-col justify-between">
             <div>
                 <h2 class="text-base font-bold text-khaki-900 mb-1 flex items-center gap-2">
                     <span class="w-7 h-7 bg-khaki-100 text-khaki-800 rounded-full flex items-center justify-center text-xs font-bold">૧</span>
-                    એક કે વધુ ફાઇલ્સ અપલોડ કરો (મલ્ટી ડેટા)
+                    <span class="catName"></span> ની એક કે વધુ ફાઇલ્સ અપલોડ કરો
                 </h2>
                 <p class="text-xs text-khaki-600 mb-4">એક કરતાં વધુ CSV અથવા Excel (.xlsx, .xls) ફાઇલ્સ પસંદ કરો.</p>
             </div>
@@ -114,16 +190,16 @@
                     <button id="downloadSingleTxtBtn" class="px-2.5 py-2 bg-khaki-800 hover:bg-khaki-900 text-white font-semibold text-xs rounded-xl shadow flex items-center justify-center gap-1.5">
                         <i class="fa-solid fa-file-lines"></i> એક જ TXT
                     </button>
-                    <button id="downloadPdfZipBtn" class="px-2.5 py-2 bg-emerald-800 hover:bg-emerald-900 text-white font-semibold text-xs rounded-xl shadow flex items-center justify-center gap-1.5">
+                    <button id="downloadPdfZipBtn" class="px-2.5 py-2 bg-khaki-600 hover:bg-khaki-700 text-white font-semibold text-xs rounded-xl shadow flex items-center justify-center gap-1.5">
                         <i class="fa-solid fa-file-pdf"></i> બધી PDF (ZIP)
                     </button>
-                    <button id="downloadSinglePdfBtn" class="px-2.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs rounded-xl shadow flex items-center justify-center gap-1.5">
+                    <button id="downloadSinglePdfBtn" class="px-2.5 py-2 bg-khaki-500 hover:bg-khaki-600 text-white font-semibold text-xs rounded-xl shadow flex items-center justify-center gap-1.5">
                         <i class="fa-solid fa-book-open"></i> એક જ PDF
                     </button>
                     <button id="copyAllBtn" class="px-2.5 py-2 bg-khaki-900 hover:bg-black text-white font-semibold text-xs rounded-xl shadow flex items-center justify-center gap-1.5">
                         <i class="fa-solid fa-copy"></i> Copy All
                     </button>
-                    <button id="shareDocBtn" class="px-2.5 py-2 bg-amber-800 hover:bg-amber-900 text-white font-semibold text-xs rounded-xl shadow flex items-center justify-center gap-1.5">
+                    <button id="shareDocBtn" class="px-2.5 py-2 bg-khaki-600 hover:bg-khaki-700 text-white font-semibold text-xs rounded-xl shadow flex items-center justify-center gap-1.5">
                         <i class="fa-solid fa-share-nodes"></i> Share
                     </button>
                 </div>
@@ -134,7 +210,7 @@
                 <div class="flex flex-col md:flex-row justify-between items-center gap-3 pb-2 border-b border-khaki-200">
                     <h2 class="text-base font-bold text-khaki-900 flex items-center gap-2">
                         <span class="w-7 h-7 bg-khaki-100 text-khaki-800 rounded-full flex items-center justify-center text-xs font-bold">૨</span>
-                        કોલમ સર્ચ અને પ્રિવ્યૂ
+                        <span class="catName"></span> - કોલમ સર્ચ અને પ્રિવ્યૂ
                     </h2>
 
                     <div class="relative w-full md:w-72">
@@ -163,7 +239,7 @@
         <section class="bg-white rounded-2xl shadow-sm border border-khaki-200 p-5 space-y-3">
             <div class="flex flex-col md:flex-row justify-between items-center gap-3 pb-2 border-b border-khaki-200">
                 <h3 class="text-sm font-bold text-khaki-900 flex items-center gap-2">
-                    <i class="fa-solid fa-box-archive text-khaki-700"></i> સેવ થયેલી ફાઇલ્સની યાદી અને સર્ચ
+                    <i class="fa-solid fa-box-archive text-khaki-700"></i> સેવ થયેલી <span class="catName"></span> ફાઇલ્સની યાદી અને સર્ચ
                 </h3>
                 
                 <div class="flex items-center gap-3 w-full md:w-auto">
@@ -187,6 +263,13 @@
         const { jsPDF } = window.jspdf;
 
         let filesMemoryStore = [];
+        let currentCat = 'CDR';
+        try { const c = localStorage.getItem('ved-cat'); if (c === 'CDR' || c === 'SDR') currentCat = c; } catch (e) {}
+        const CAT_STYLE = {
+            CDR: { on: 'bg-khaki-700 text-white border-khaki-700 shadow', banner: 'bg-khaki-700' },
+            SDR: { on: 'bg-khaki-700 text-white border-khaki-700 shadow', banner: 'bg-khaki-700' }
+        };
+        const CAT_OFF = 'bg-white text-khaki-800 border-khaki-300 hover:bg-khaki-100';
 
         // ===== Permanent storage (IndexedDB) =====
         const DB_NAME = 'ved-db', DB_STORE = 'files';
@@ -247,6 +330,7 @@
             if (files.length === 0) return;
 
             for (let file of files) {
+                const cat = currentCat;
                 const fileId = "file_" + Date.now() + "_" + Math.random().toString(36).substr(2, 4);
                 const ext = file.name.split('.').pop().toLowerCase();
 
@@ -261,7 +345,7 @@
                                 XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
                                 
                                 const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-                                addStoredFile({ id: fileId, name: file.name, data: wbout });
+                                addStoredFile({ id: fileId, name: file.name, data: wbout, cat });
                                 refreshFilesUI();
                                 selectStoredFile(fileId);
                             }
@@ -271,7 +355,7 @@
                     const reader = new FileReader();
                     reader.onload = function (evt) {
                         const buffer = evt.target.result;
-                        addStoredFile({ id: fileId, name: file.name, data: buffer });
+                        addStoredFile({ id: fileId, name: file.name, data: buffer, cat });
                         refreshFilesUI();
                         selectStoredFile(fileId);
                     };
@@ -288,10 +372,11 @@
             const q = fileSearchInput.value.toLowerCase().trim();
             fileListContainer.innerHTML = '';
             
-            const filteredFiles = filesMemoryStore.filter(f => f.name.toLowerCase().includes(q));
+            updateCounts();
+            const filteredFiles = filesMemoryStore.filter(f => (f.cat || 'CDR') === currentCat && f.name.toLowerCase().includes(q));
 
             if (filteredFiles.length === 0) {
-                fileListContainer.innerHTML = `<p class="text-xs text-khaki-500 text-center py-6 col-span-full">કોઈ ફાઇલ મળી નથી.</p>`;
+                fileListContainer.innerHTML = `<p class="text-xs text-khaki-500 text-center py-6 col-span-full">${currentCat} માં કોઈ ફાઇલ મળી નથી.</p>`;
                 return;
             }
 
@@ -301,7 +386,7 @@
                 item.innerHTML = `
                     <div class="flex items-center gap-2 truncate" onclick="selectStoredFile('${f.id}')">
                         <i class="fa-solid fa-file-excel text-emerald-700 text-sm"></i>
-                        <span class="truncate">${f.name}</span>
+                        <span class="truncate">${escapeHtml(f.name)}</span>
                     </div>
                     <button onclick="removeSingleFile('${f.id}', event)" class="text-gray-400 hover:text-red-600 p-1"><i class="fa-solid fa-trash"></i></button>
                 `;
@@ -311,9 +396,9 @@
 
         window.selectStoredFile = function(id) {
             const f = filesMemoryStore.find(x => x.id === id);
-            if (!f) return;
+            if (!f || (f.cat || 'CDR') !== currentCat) return;
             currentFileId = f.id;
-            try { localStorage.setItem('ved-last', f.id); } catch (e) {}
+            try { localStorage.setItem('ved-last-' + currentCat, f.id); } catch (e) {}
             
             workbookData = XLSX.read(new Uint8Array(f.data), { type: 'array' });
             renderSheetTabs();
@@ -334,13 +419,14 @@
         };
 
         document.getElementById('clearAllStorageBtn').addEventListener('click', () => {
-            filesMemoryStore = [];
-            dbClear();
-            try { localStorage.removeItem('ved-last'); } catch (e) {}
+            if (!confirm(currentCat + ' ની બધી ફાઇલ્સ કાઢી નાખવી છે? (બીજા ડેશબોર્ડનો ડેટા સુરક્ષિત રહેશે)')) return;
+            filesMemoryStore.filter(x => (x.cat || 'CDR') === currentCat).forEach(x => dbDelete(x.id));
+            filesMemoryStore = filesMemoryStore.filter(x => (x.cat || 'CDR') !== currentCat);
+            try { localStorage.removeItem('ved-last-' + currentCat); } catch (e) {}
             processingSection.classList.add('hidden');
             currentFileId = null;
             refreshFilesUI();
-            showToast("બધી ફાઇલ્સ દૂર થઈ ગઈ!");
+            showToast(currentCat + " ની બધી ફાઇલ્સ દૂર થઈ ગઈ!");
         });
 
         function renderSheetTabs() {
@@ -412,12 +498,71 @@
                     <td class="px-3 py-2 text-center">
                         <div class="flex items-center justify-center gap-1">
                             <button onclick="copyTxt(\`${escapeHtml(txt)}\`)" class="p-1.5 bg-khaki-100 text-khaki-800 rounded text-xs" title="કોપી કરો"><i class="fa-regular fa-copy"></i></button>
-                            <button onclick="dlPdf(${idx})" class="p-1.5 bg-emerald-100 text-emerald-800 rounded text-xs" title="PDF ડાઉનલોડ"><i class="fa-solid fa-file-pdf"></i></button>
+                            <button onclick="dlPdf(${idx})" class="p-1.5 bg-khaki-200 text-khaki-800 rounded text-xs" title="PDF ડાઉનલોડ"><i class="fa-solid fa-file-pdf"></i></button>
                         </div>
                     </td>
                 `;
                 previewTableBody.appendChild(tr);
             });
+        }
+
+        function updateCounts() {
+            ['CDR', 'SDR'].forEach(c => {
+                const el = document.getElementById('cnt' + c);
+                if (el) el.textContent = filesMemoryStore.filter(f => (f.cat || 'CDR') === c).length;
+            });
+        }
+
+        function setCategory(cat) {
+            currentCat = cat;
+            try { localStorage.setItem('ved-cat', cat); } catch (e) {}
+            currentFileId = null;
+            workbookData = null;
+            processingSection.classList.add('hidden');
+            fileSearchInput.value = '';
+            searchInput.value = '';
+            document.querySelectorAll('.catName').forEach(el => el.textContent = cat);
+            applyTheme(THEMES.find(t => t.id === getThemeId(cat)));
+            renderThemePicker();
+            ['CDR', 'SDR'].forEach(c => {
+                document.getElementById('tab' + c).className =
+                    'rounded-2xl border-2 px-4 py-3 text-center font-bold transition-all ' + (c === cat ? CAT_STYLE[c].on : CAT_OFF);
+            });
+            document.getElementById('dashBanner').className =
+                'rounded-2xl px-5 py-3 text-white shadow flex items-center justify-between ' + CAT_STYLE[cat].banner;
+            refreshFilesUI();
+            let last = null;
+            try { last = localStorage.getItem('ved-last-' + cat); } catch (e) {}
+            if (last && filesMemoryStore.some(x => x.id === last)) selectStoredFile(last);
+        }
+        window.setCategory = setCategory;
+
+        function swatchColor(t) { return 'rgb(' + hsl2rgb(t.h, t.s, 32).join(',') + ')'; }
+        function renderThemePicker() {
+            const cur = getThemeId(currentCat);
+            const box = document.getElementById('themePicker');
+            box.innerHTML = '';
+            THEMES.forEach(t => {
+                const b = document.createElement('button');
+                b.type = 'button';
+                b.title = t.name;
+                b.setAttribute('aria-label', t.name);
+                b.style.background = swatchColor(t);
+                b.className = 'w-8 h-8 rounded-full border-2 transition-all ' +
+                    (t.id === cur ? 'border-khaki-900 ring-2 ring-offset-2 ring-khaki-500 scale-110 shadow' : 'border-white shadow-sm hover:scale-110');
+                b.onclick = () => setTheme(currentCat, t.id);
+                box.appendChild(b);
+            });
+            document.getElementById('themeName').textContent = THEMES.find(t => t.id === cur).name;
+            ['CDR', 'SDR'].forEach(c => {
+                const d = document.getElementById('dot' + c);
+                if (d) d.style.background = swatchColor(THEMES.find(t => t.id === getThemeId(c)));
+            });
+        }
+        function setTheme(cat, id) {
+            try { localStorage.setItem('ved-theme-' + cat, id); } catch (e) {}
+            applyTheme(THEMES.find(t => t.id === id));
+            renderThemePicker();
         }
 
         function escapeHtml(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
@@ -427,13 +572,13 @@
             const doc = new jsPDF();
             doc.setFontSize(10);
             doc.text(doc.splitTextToSize(generateRowText(filteredData[i], i), 180), 14, 15);
-            doc.save(`${currentSheetName}_row_${i + 1}.pdf`);
+            doc.save(`${currentCat}_${currentSheetName}_row_${i + 1}.pdf`);
         };
 
         document.getElementById('downloadSingleTxtBtn').onclick = () => {
             if (!filteredData.length) return;
             const text = filteredData.map((r, i) => generateRowText(r, i)).join('\n\n' + '='.repeat(40) + '\n\n');
-            dlBlob(new Blob([text], { type: 'text/plain' }), `${currentSheetName}_data.txt`);
+            dlBlob(new Blob([text], { type: 'text/plain' }), `${currentCat}_${currentSheetName}_data.txt`);
         };
 
         document.getElementById('downloadZipBtn').onclick = async () => {
@@ -441,7 +586,7 @@
             const zip = new JSZip();
             filteredData.forEach((r, i) => zip.file(`row_${i + 1}.txt`, generateRowText(r, i)));
             const blob = await zip.generateAsync({ type: 'blob' });
-            dlBlob(blob, `${currentSheetName}_txt_files.zip`);
+            dlBlob(blob, `${currentCat}_${currentSheetName}_txt_files.zip`);
         };
 
         document.getElementById('downloadPdfZipBtn').onclick = async () => {
@@ -454,7 +599,7 @@
                 zip.file(`row_${i + 1}.pdf`, doc.output('blob'));
             });
             const blob = await zip.generateAsync({ type: 'blob' });
-            dlBlob(blob, `${currentSheetName}_pdf_files.zip`);
+            dlBlob(blob, `${currentCat}_${currentSheetName}_pdf_files.zip`);
             showToast("બધી PDF નું ZIP ડાઉનલોડ થઈ ગયું!");
         };
 
@@ -473,7 +618,7 @@
                 doc.text(splitText, 14, y);
                 y += (splitText.length * 5) + 10;
             });
-            doc.save(`${currentSheetName}_all_data.pdf`);
+            doc.save(`${currentCat}_${currentSheetName}_all_data.pdf`);
             showToast("સંપૂર્ણ PDF ડાઉનલોડ થઈ ગઈ!");
         };
 
@@ -497,6 +642,7 @@
             const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = n; document.body.appendChild(a); a.click(); document.body.removeChild(a);
         }
     </script>
+    <script>setCategory(currentCat);</script>
     <!-- Load saved files on startup -->
     <script>
         (async () => {
@@ -506,10 +652,7 @@
                 if (!filesMemoryStore.some(x => x.id === rec.id)) filesMemoryStore.push(rec);
             }
             filesMemoryStore.sort((a, b) => a.id.localeCompare(b.id));
-            refreshFilesUI();
-            let last = null;
-            try { last = localStorage.getItem('ved-last'); } catch (e) {}
-            if (!currentFileId && last && filesMemoryStore.some(x => x.id === last)) selectStoredFile(last);
+            setCategory(currentCat);
         })();
     </script>
     <!-- WhatsApp / Telegram Share Target (added) -->
