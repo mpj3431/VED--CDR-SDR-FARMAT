@@ -186,7 +186,36 @@
     <script>
         const { jsPDF } = window.jspdf;
 
-        let filesMemoryStore = []; 
+        let filesMemoryStore = [];
+
+        // ===== Permanent storage (IndexedDB) =====
+        const DB_NAME = 'ved-db', DB_STORE = 'files';
+        function openDB() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open(DB_NAME, 1);
+                req.onupgradeneeded = () => req.result.createObjectStore(DB_STORE, { keyPath: 'id' });
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        }
+        async function dbTx(mode, fn) {
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(DB_STORE, mode);
+                const out = fn(tx.objectStore(DB_STORE));
+                tx.oncomplete = () => resolve(out && out.result !== undefined ? out.result : undefined);
+                tx.onerror = () => reject(tx.error);
+            });
+        }
+        const dbPut = (rec) => dbTx('readwrite', s => s.put(rec)).catch(() => showToast('સેવ કરવામાં સમસ્યા આવી'));
+        const dbDelete = (id) => dbTx('readwrite', s => s.delete(id)).catch(() => {});
+        const dbClear = () => dbTx('readwrite', s => s.clear()).catch(() => {});
+        const dbGetAll = () => dbTx('readonly', s => s.getAll()).catch(() => []);
+
+        function addStoredFile(rec) {
+            filesMemoryStore.push(rec);
+            dbPut(rec);
+        } 
         let currentFileId = null;
         let workbookData = null;
         let currentSheetName = "";
@@ -232,7 +261,7 @@
                                 XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
                                 
                                 const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-                                filesMemoryStore.push({ id: fileId, name: file.name, data: wbout });
+                                addStoredFile({ id: fileId, name: file.name, data: wbout });
                                 refreshFilesUI();
                                 selectStoredFile(fileId);
                             }
@@ -242,7 +271,7 @@
                     const reader = new FileReader();
                     reader.onload = function (evt) {
                         const buffer = evt.target.result;
-                        filesMemoryStore.push({ id: fileId, name: file.name, data: buffer });
+                        addStoredFile({ id: fileId, name: file.name, data: buffer });
                         refreshFilesUI();
                         selectStoredFile(fileId);
                     };
@@ -284,6 +313,7 @@
             const f = filesMemoryStore.find(x => x.id === id);
             if (!f) return;
             currentFileId = f.id;
+            try { localStorage.setItem('ved-last', f.id); } catch (e) {}
             
             workbookData = XLSX.read(new Uint8Array(f.data), { type: 'array' });
             renderSheetTabs();
@@ -294,6 +324,7 @@
         window.removeSingleFile = function(id, e) {
             e.stopPropagation();
             filesMemoryStore = filesMemoryStore.filter(x => x.id !== id);
+            dbDelete(id);
             if (currentFileId === id) {
                 processingSection.classList.add('hidden');
                 currentFileId = null;
@@ -304,6 +335,8 @@
 
         document.getElementById('clearAllStorageBtn').addEventListener('click', () => {
             filesMemoryStore = [];
+            dbClear();
+            try { localStorage.removeItem('ved-last'); } catch (e) {}
             processingSection.classList.add('hidden');
             currentFileId = null;
             refreshFilesUI();
@@ -463,6 +496,21 @@
         function dlBlob(b, n) {
             const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = n; document.body.appendChild(a); a.click(); document.body.removeChild(a);
         }
+    </script>
+    <!-- Load saved files on startup -->
+    <script>
+        (async () => {
+            try { if (navigator.storage && navigator.storage.persist) await navigator.storage.persist(); } catch (e) {}
+            const saved = await dbGetAll();
+            for (const rec of saved) {
+                if (!filesMemoryStore.some(x => x.id === rec.id)) filesMemoryStore.push(rec);
+            }
+            filesMemoryStore.sort((a, b) => a.id.localeCompare(b.id));
+            refreshFilesUI();
+            let last = null;
+            try { last = localStorage.getItem('ved-last'); } catch (e) {}
+            if (!currentFileId && last && filesMemoryStore.some(x => x.id === last)) selectStoredFile(last);
+        })();
     </script>
     <!-- WhatsApp / Telegram Share Target (added) -->
     <script>
